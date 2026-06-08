@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>从化七中入团知识闯关考试</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:"微软雅黑",sans-serif}
+        body{background:#f5f7fa;padding:30px;max-width:900px;margin:0 auto}
+        .box{background:#fff;border-radius:12px;padding:30px;box-shadow:0 2px 15px #e2e8f0}
+        h1{text-align:center;color:#c81623;margin-bottom:20px;font-size:26px}
+        .level-bar{display:flex;gap:15px;margin:20px 0;justify-content:center}
+        .level-item{padding:8px 16px;border:2px solid #ddd;border-radius:8px}
+        .level-active{border-color:#c81623;background:#fff0f0;color:#c81623;font-weight:bold}
+        .level-lock{background:#eee;color:#999;cursor:not-allowed}
+        .star{color:#ffb800;font-size:22px;margin:8px 0;text-align:center}
+        .q-item{margin:22px 0;padding:15px;border-bottom:1px solid #eee}
+        .q-title{font-size:16px;margin-bottom:10px;line-height:1.6}
+        .opt{margin:7px 0;cursor:pointer;padding:6px 10px;border-radius:4px}
+        .opt:hover{background:#f3f4f6}
+        .opt.selected{background:#c81623;color:#fff;}
+        .correct{color:green;font-size:14px;margin-top:8px;line-height:1.5}
+        .analysis{color:#666;font-size:13px;margin-top:4px;text-indent:2em}
+        input[type="text"]{border:1px solid #ccc;padding:7px;width:320px;border-radius:5px;font-size:15px}
+        .btns{margin-top:30px;text-align:center}
+        button{padding:10px 26px;border:none;border-radius:6px;background:#c81623;color:#fff;font-size:15px;cursor:pointer;margin:0 8px}
+        button:disabled{background:#bbb;cursor:not-allowed}
+        .result-text{margin:20px 0;font-size:17px;text-align:center}
+    </style>
+</head>
+<body>
+<div class="box">
+    <h1>从化七中入团知识闯关答题</h1>
+    <div class="level-bar">
+        <div id="l1" class="level-item level-active">第一关·基础</div>
+        <div id="l2" class="level-item level-lock">第二关·中等</div>
+        <div id="l3" class="level-item level-lock">第三关·难题</div>
+    </div>
+    <div class="star" id="starBox">当前星级：☆☆☆☆☆☆☆☆☆☆</div>
+    <div id="questionBox"></div>
+    <div class="btns">
+        <button id="submitBtn">提交答案</button>
+        <button id="nextBtn" disabled>进入下一关</button>
+        <button onclick="restartAll()">重新闯关</button>
+    </div>
+    <div class="result-text" id="resText"></div>
+</div>
+
+<script>
+const baseDB = [
+    {type:"select",q:"团徽包含：团旗、齿轮、__、初升太阳及光芒、绶带",opt:["麦稻","穗稻","麦穗"],ans:2,answerText:"C、麦穗",analysis:"团徽由团旗、齿轮、麦穗、太阳、绶带组成。"},
+    {type:"select",q:"团员需要学习科学、文化、法律和什么知识？",opt:["业务","道德","国防"],ans:0,answerText:"A、业务",analysis:"团员需学习科学、文化、法律和业务知识。"},
+    {type:"select",q:"哪次会议后共青团围绕改革开放建设？",opt:["十一届三中全会","十七大","十六大"],ans:0,answerText:"A、十一届三中全会",analysis:"十一届三中全会后进入改革开放时期。"},
+    {type:"select",q:"共青团工作落脚点是？",opt:["团结教育","教育培训","竭诚服务"],ans:2,answerText:"C、竭诚服务",analysis:"竭诚服务青年是共青团工作的出发点。"},
+    {type:"select",q:"谁不能剥夺团员权利",opt:["基层组织个人","任何一级组织或个人","各级领导"],ans:1,answerText:"B、任何一级组织或个人",analysis:"任何组织和个人都无权剥夺团员权利。"},
+    {type:"select",q:"团旗红色象征？",opt:["抗战胜利","战争胜利","革命胜利"],ans:2,answerText:"C、革命胜利",analysis:"团旗红色象征革命胜利。"},
+    {type:"select",q:"团员证封面颜色",opt:["绿色","墨绿色","红色"],ans:1,answerText:"B、墨绿色",analysis:"团员证封面为墨绿色。"},
+    {type:"judge",q:"共青团是党的先进青年领导组织",ans:false,answerText:"× 错误",analysis:"共青团是群团组织，不是领导组织。"},
+    {type:"judge",q:"对团决议有异议可保留意见并向上级提出",ans:true,answerText:"√ 正确",analysis:"团员可保留意见并向上级反映。"},
+    {type:"fill",q:"共青团坚决拥护____的纲领",ans:"中国共产党",answerText:"中国共产党",analysis:"共青团坚决拥护中国共产党的纲领。"}
+];
+
+const midDB = [
+    {type:"select",q:"入团年龄范围",opt:["13-18","15-25","14-28"],ans:2,answerText:"C、14-28",analysis:"14至28周岁可申请入团。"},
+    {type:"select",q:"入团需要几名团员介绍",opt:["1人","2人","3人"],ans:1,answerText:"B、2人",analysis:"入团需两名团员作介绍人。"},
+    {type:"select",q:"连续多久不交团费自行脱团",opt:["3个月","半年","1年"],ans:1,answerText:"B、半年",analysis:"连续6个月不交团费视为自行脱团。"},
+    {type:"judge",q:"团歌是《光荣啊，团组织》",ans:false,answerText:"× 错误",analysis:"团歌是《光荣啊，中国共青团》。"},
+    {type:"judge",q:"团员调动不用转接组织关系",ans:false,answerText:"× 错误",analysis:"团员调动必须转接组织关系。"},
+    {type:"fill",q:"团根本组织原则：____",ans:"民主集中制",answerText:"民主集中制",analysis:"民主集中制是团的根本组织原则。"},
+    {type:"fill",q:"团员自行脱团：连续__个月不交团费",ans:"六",answerText:"六",analysis:"连续六个月不交团费视为脱团。"},
+    {type:"fill",q:"团纪律处分共__种",ans:"五",answerText:"五",analysis:"团的纪律处分共有五种。"},
+    {type:"fill",q:"三会两制一课中三会含支部大会、____、小组会",ans:"支部委员会",answerText:"支部委员会",analysis:"三会：支部大会、支部委员会、小组会。"},
+    {type:"judge",q:"新团员团籍从支部大会通过生效",ans:true,answerText:"√ 正确",analysis:"支部大会通过之日取得团籍。"}
+];
+
+const hardDB = [
+    {type:"select",q:"代表投票选举领导人属于？",opt:["直接","间接","差额"],ans:1,answerText:"B、间接",analysis:"由代表投票属于间接选举。"},
+    {type:"judge",q:"处分团员先基层团委审批再支部大会",ans:false,answerText:"× 错误",analysis:"必须先支部大会，再上级审批。"},
+    {type:"fill",q:"留团察看期限：六个月或____",ans:"一年",answerText:"一年",analysis:"留团察看为六个月或一年。"},
+    {type:"fill",q:"留团察看不改错误予以____",ans:"开除团籍",answerText:"开除团籍",analysis:"坚持不改者开除团籍。"},
+    {type:"fill",q:"入团誓词：坚决拥护____的领导",ans:"中国共产党",answerText:"中国共产党",analysis:"入团誓词第一条：拥护党的领导。"},
+    {type:"fill",q:"团旗黄圈象征青年团结在____周围",ans:"中国共产党",answerText:"中国共产党",analysis:"青年团结在党的周围。"},
+    {type:"fill",q:"团员三项权利：选举权、被选举权、____",ans:"表决权",answerText:"表决权",analysis:"团员三大权利：选举、被选举、表决。"},
+    {type:"judge",q:"青年团二大改名共青团",ans:false,answerText:"× 错误",analysis:"团的三大改名共青团。"},
+    {type:"fill",q:"共青团是党领导先进青年____组织",ans:"群团",answerText:"群团",analysis:"共青团是群团组织。"},
+    {type:"fill",q:"新时代行动指南包含____思想",ans:"习近平新时代中国特色社会主义",answerText:"习近平新时代中国特色社会主义",analysis:"行动指南包含习近平新时代中国特色社会主义思想。"}
+];
+
+let nowLevel = 1;
+let curQues = [];
+let userAns = [];
+let rightNum = 0;
+let levelPass = [false,false,false];
+let levelQuiz = [[],[],[]];
+
+function getRandQuiz(db, level){
+    if(levelQuiz[level-1].length > 0) return levelQuiz[level-1];
+    let arr = [...db];
+    arr.sort(()=>Math.random()-0.5);
+    let res = arr.slice(0,10);
+    levelQuiz[level-1] = res;
+    return res;
+}
+
+function renderQ(){
+    let box = document.getElementById("questionBox");
+    box.innerHTML = "";
+    userAns = []; rightNum = 0;
+    let db = nowLevel==1?baseDB:nowLevel==2?midDB:hardDB;
+    curQues = getRandQuiz(db, nowLevel);
+
+    curQues.forEach((item,idx)=>{
+        userAns.push(null);
+        let div = document.createElement("div");
+        div.className="q-item";
+        let html = `<div class="q-title">${idx+1}. ${item.q}</div>`;
+        if(item.type=="select"){
+            item.opt.forEach((o,i)=>{
+                html+=`<div class="opt" data-q="${idx}" data-val="${i}">${String.fromCharCode(65+i)}、${o}</div>`;
+            })
+        }else if(item.type=="judge"){
+            html+=`<div class="opt" data-q="${idx}" data-val="1">√ 正确</div><div class="opt" data-q="${idx}" data-val="0">× 错误</div>`;
+        }else if(item.type=="fill"){
+            html+=`<input type="text" id="fill${idx}" placeholder="请填写答案">`;
+        }
+        div.innerHTML=html;
+        box.appendChild(div);
+    });
+
+    document.querySelectorAll('.opt').forEach(el=>{
+        el.onclick=function(){
+            let qidx = this.dataset.q;
+            let val = this.dataset.val;
+            this.parentNode.querySelectorAll('.opt').forEach(s=>s.classList.remove('selected'));
+            this.classList.add('selected');
+            userAns[qidx] = Number(val);
+        }
+    });
+
+    document.getElementById("resText").innerText="";
+    document.getElementById("nextBtn").disabled=true;
+}
+
+function submitAll(){
+    rightNum=0;
+    const items = document.querySelectorAll('.q-item');
+    curQues.forEach((it,i)=>{
+        let ua = userAns[i];
+        let isRight = false;
+
+        if(it.type == "fill"){
+            let inp = document.getElementById("fill"+i);
+            let val = inp.value.trim().replace(/\s+/g,"");
+            let ans = it.ans.trim().replace(/\s+/g,"");
+            if(val == ans) isRight = true;
+        }else{
+            let trueAns = it.ans===true?1:it.ans===false?0:it.ans;
+            if(ua == trueAns) isRight = true;
+        }
+
+        if(isRight) rightNum++;
+        items[i].innerHTML += `<div class="correct">${it.answerText}</div><div class="analysis">解析：${it.analysis}</div>`;
+    });
+
+    // 星级：10颗星，答对几题亮几颗
+    let star = "";
+    for(let i=0;i<10;i++) star += i<rightNum ? "★" : "☆";
+    document.getElementById("starBox").innerText = `当前星级：${star}（答对 ${rightNum} 题）`;
+
+    let tip = `答题结束：共答对 ${rightNum}/10 题`;
+    let nextBtn = document.getElementById("nextBtn");
+
+    if(nowLevel == 1){
+        if(rightNum == 10){
+            tip += " → 满分通关！解锁第二关";
+            levelPass[0]=true;
+            document.getElementById("l2").className="level-item level-active";
+            nextBtn.disabled=false;
+        }else if(rightNum >=8){
+            tip += " → 达到8星标准，本关通关（需全对才能进下一关）";
+        }else{
+            tip += " → 未达标（需≥8题）";
+        }
+    }else if(nowLevel ==2){
+        if(rightNum==10){
+            tip+=" → 满分通关！解锁第三关";
+            document.getElementById("l3").className="level-item level-active";
+            nextBtn.disabled=false;
+        }else{
+            tip+=" → 未满分，无法进入第三关";
+        }
+    }else{
+        tip+= rightNum==10 ? " → 恭喜！全部闯关圆满成功！" : " → 未满分";
+    }
+
+    document.getElementById("resText").innerText=tip;
+    document.querySelectorAll('.opt').forEach(e=>e.style.pointerEvents="none");
+    document.querySelectorAll('input').forEach(e=>e.disabled=true);
+}
+
+function goNext(){
+    nowLevel++;
+    renderQ();
+}
+
+function restartAll(){
+    nowLevel=1;
+    levelQuiz=[[],[],[]];
+    document.getElementById("l1").className="level-item level-active";
+    document.getElementById("l2").className="level-item level-lock";
+    document.getElementById("l3").className="level-item level-lock";
+    document.getElementById("starBox").innerText="当前星级：☆☆☆☆☆☆☆☆☆☆";
+    renderQ();
+}
+
+document.getElementById("submitBtn").onclick=submitAll;
+document.getElementById("nextBtn").onclick=goNext;
+window.onload=renderQ;
+</script>
+</body>
+</html>
